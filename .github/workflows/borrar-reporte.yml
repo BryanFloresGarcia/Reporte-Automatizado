@@ -1,0 +1,49 @@
+name: Borrar ReporteAuto.html de main (00:00 Lima)
+
+on:
+  # Programa diario a las 00:00 Lima (UTC-5) => 05:00 UTC
+  schedule:
+    - cron: "0 5 * * *"
+  # Permite ejecución manual desde Actions
+  workflow_dispatch:
+
+permissions:
+  contents: write   # necesario para hacer commit/push
+
+jobs:
+  delete-report:
+    name: Eliminar archivo si existe
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repo (main)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configurar usuario de git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Eliminar ReporteAuto.html si existe
+        id: delete
+        shell: bash
+        run: |
+          set -e
+          FILE="ReporteAuto.html"
+          if [ -f "$FILE" ]; then
+            echo "Encontrado $FILE. Eliminando..."
+            git rm "$FILE"
+            echo "changes=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "No existe $FILE. No hay cambios."
+            echo "changes=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit y push
+        if: steps.delete.outputs.changes == '1'
+        run: |
+          git commit -m "chore: eliminar ReporteAuto.html (task diaria)"
+          git push origin HEAD:main
